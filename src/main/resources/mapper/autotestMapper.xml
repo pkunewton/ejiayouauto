@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ejiayou.dao.AutoTestDao">
+
+    <resultMap id="TestCaseMap" type="TestCase">
+        <id property="caseId" column="case_id"/>
+        <result property="moduleId" column="module_id"/>
+        <result property="interfaceName" column="interface_name"/>
+        <result property="caseDescription" column="case_description"/>
+        <result property="existParams" column="exist_params"/>
+    </resultMap>
+
+    <resultMap id="TestCaseParamsMap" type="TestCaseParams">
+        <id property="paramId" column="param_id"/>
+        <result property="caseId" column="case_id"/>
+        <result property="paramType" column="param_type"/>
+        <result property="paramValue" column="param_value"/>
+        <result property="expectRegex" column="expect_regex"/>
+    </resultMap>
+
+    <resultMap id="TestCaseWithParamMap" type="TestCaseWithParam">
+        <id property="caseId" column="case_id"/>
+        <result property="moduleId" column="module_id"/>
+        <result property="interfaceName" column="interface_name"/>
+        <result property="caseDescription" column="case_description"/>
+        <result property="existParams" column="exist_params"/>
+        <association property="testCaseParams" javaType="TestCaseParams" column="case_id" select="getTestCaseParamsByCaseId">
+            <!--<id property="paramId" column="param_id"/>-->
+            <!--<result property="caseId" column="case_id"/>-->
+            <!--<result property="paramType" column="param_type"/>-->
+            <!--<result property="paramValue" column="param_value"/>-->
+            <!--<result property="expectRegex" column="expect_regex"/>-->
+        </association>
+    </resultMap>
+
+    <resultMap id="TestResultMap" type="com.ejiayou.model.TestResult">
+        <id property="resultId" column="result_id"/>
+        <result property="moduleId" column="module_id"/>
+        <result property="passCount" column="pass_count"/>
+        <result property="failCount" column="fail_count"/>
+        <result property="totalCount" column="total_count"/>
+        <collection property="resultDetails" resultMap="ResultDetailMap" ofType="com.ejiayou.model.ResultDetail"/>
+    </resultMap>
+
+    <resultMap id="ResultDetailMap" type="com.ejiayou.model.ResultDetail">
+        <id property="detailId" column="detail_id"/>
+        <result property="resultId" column="result_id"/>
+        <result property="moduleId" column="module_id"/>
+        <result property="caseId" column="case_id"/>
+        <result property="actualResult" column="actual_result"/>
+        <result property="expectRegex" column="expect_regex"/>
+        <result property="passStatus" column="pass_status"/>
+    </resultMap>
+
+    <insert id="insertModule" parameterType="TestModule">
+    	insert into test_module(name,description,status) values (#{name},#{description});
+    </insert>
+    <select id="findModuleByName" parameterType="java.lang.String" resultType="TestModule">
+        SELECT id,name,description FROM test_module WHERE name = #{name} and status = 1;
+    </select>
+    <select id="getTestModules" resultType="TestModule">
+        SELECT id,name,description FROM test_module WHERE  status = 1;
+    </select>
+    <update id="updateTestModule" parameterType="TestModule">
+        UPDATE test_module SET test_module.name = #{name}, description = #{description} WHERE id = #{id} and status = 1;
+    </update>
+    <update id="deleteTestModule" parameterType="int">
+        UPDATE test_module SET status = 0 WHERE id = #{id} and status = 1;
+    </update>
+
+
+    <insert id="insertCase" useGeneratedKeys="true" keyProperty="caseId">
+    <!-- 使用useGeneratedKeys后，自增id会在执行sql后保存到resultMap的实例中 -->
+        INSERT INTO test_cases(module_id,interface_name,case_description,exist_params)
+        VALUES (#{moduleId},#{interfaceName},#{caseDescription},#{existParams});
+    </insert>
+    <update id="updateTestCase">
+        UPDATE test_cases SET case_description = #{caseDescription} WHERE case_id = #{caseId} AND status = 1;
+    </update>
+    <update id="deleteTestCase" parameterType="int">
+        UPDATE test_cases SET status = 0 WHERE case_id = #{caseId} AND status = 1;
+    </update>
+    <select id="getTestCasesByModuleId" parameterType="int" resultMap="TestCaseWithParamMap">
+        SELECT tc.case_id,tc.module_id,tc.interface_name,tc.case_description,tc.exist_params,tcp.param_id,tcp.param_type,tcp.param_value,tcp.expect_regex
+        FROM test_cases tc LEFT JOIN test_case_params tcp ON tc.case_id = tcp.case_id
+        WHERE tc.module_id = #{moduleId} and tc.status = 1;
+    </select>
+    <insert id="insertTestCaseParams">
+        INSERT  INTO test_case_params(case_id,param_type,param_value,expect_regex)
+        VALUES (#{caseId},#{paramType},#{paramValue},#{expectRegex});
+    </insert>
+    <select id="getTestCaseParamsByCaseId" parameterType="int" resultMap="TestCaseParamsMap">
+        SELECT case_id,param_id,param_type,param_value,expect_regex
+        FROM test_case_params WHERE case_id = #{caseId};
+    </select>
+    <select id="getTestCaseDetailByCaseId" parameterType="int" resultMap="TestCaseWithParamMap">
+        SELECT tc.case_id,tc.module_id,tc.interface_name,tc.case_description,tc.exist_params,tcp.param_id,tcp.param_type,tcp.param_value,tcp.expect_regex
+        FROM test_cases tc LEFT JOIN test_case_params tcp ON tc.case_id = tcp.case_id
+        WHERE tc.case_id = #{caseId} AND tc.status = 1;
+    </select>
+
+
+
+    <select id="getTestResultByResultId" parameterType="int" resultMap="TestResultMap">
+        SELECT tr.result_id,tr.module_id,tr.pass_count,tr.fail_count,tr.total_count,
+        rd.detail_id,rd.actual_result,rd.module_id,rd.case_id,rd.expect_regex,rd.pass_status
+        FROM test_result tr JOIN  result_detail rd ON tr.result_id = rd.result_id
+        WHERE tr.result_id = #{resultId};
+    </select>
+    <insert id="insertTestResult" useGeneratedKeys="true" keyProperty="resultId">
+        INSERT INTO test_result(module_id,pass_count,fail_count,total_count)
+        VALUES (#{moduleId},#{passCount},#{failCount},#{totalCount});
+    </insert>
+    <insert id="insertResultDetailBatch" useGeneratedKeys="true" keyProperty="detailId">
+
+        INSERT INTO result_detail (result_id,module_id,case_id,actual_result,expect_regex,pass_status)
+        VALUES 
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.resultId},#{item.moduleId},#{item.caseId},#{item.actualResult},#{item.expectRegex},#{item.passStatus})
+        </foreach>
+    </insert>
+</mapper>

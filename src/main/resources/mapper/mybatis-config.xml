@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <typeAliases >
+        <typeAlias type="com.ejiayou.model.TestModule" alias="TestModule"/>
+        <typeAlias type="com.ejiayou.model.TestCase" alias="TestCase"/>
+        <typeAlias type="com.ejiayou.model.TestCaseParams" alias="TestCaseParams"/>
+        <typeAlias type="com.ejiayou.model.TestCaseWithParam" alias="TestCaseWithParam"/>
+    </typeAliases>
+    <mappers>
+        <mapper resource="mapper/autotestMapper.xml"/>
+    </mappers>
+</configuration>

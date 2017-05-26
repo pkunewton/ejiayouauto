@@ -1,3 +1,5 @@
+数据库建表SQL 
+
 CREATE TABLE `test_module_record` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) CHARACTER SET latin1 DEFAULT NULL,
